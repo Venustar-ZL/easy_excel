@@ -1,7 +1,8 @@
 package com.example.easy_excel.bean;
 
+import com.alibaba.excel.annotation.ExcelProperty;
+import lombok.Data;
 
-import java.util.Date;
 
 /**
  * @ClassName:
@@ -10,12 +11,19 @@ import java.util.Date;
  * @Author: ZhangLei
  * @Version: 1.0
  **/
+@Data
 public class DemoData {
 
-    private String string;
+    @ExcelProperty(value = "学号")
+    private Integer id;
 
-    private Date date;
+    @ExcelProperty(value = "姓名")
+    private String name;
 
-    private Double doubleData;
+    @ExcelProperty(value = "性别")
+    private String sex;
+
+    @ExcelProperty(value = "年龄")
+    private Integer age;
 
 }

@@ -1,0 +1,25 @@
+# 自定义配置文件
+cnc:
+  head:
+    # 是否需要精确匹配
+    accurate: false
+    # 表头颜色
+    color: 255,255,0
+    # 表头格式
+    pattern: null
+    # 是否需要解析
+    parsing: false
+    # 范围
+    range: 1
+
+  tail:
+    # 是否需要精确匹配
+    accurate: false
+    # 表尾颜色
+    color: 255,0,0
+    # 表尾格式
+    pattern: null
+    # 是否需要解析
+    parsing: false
+    # 范围
+    range: 1

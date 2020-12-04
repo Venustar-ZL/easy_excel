@@ -2,6 +2,7 @@ package com.example.easy_excel.jackson;
 
 import com.alibaba.excel.util.DateUtils;
 import com.alibaba.fastjson.JSONObject;
+import com.example.easy_excel.bean.PortOfCall;
 import com.example.easy_excel.bean.VslVoy;
 import com.example.easy_excel.config_file_test.config.*;
 import com.example.easy_excel.utils.CellColorUtil;
@@ -100,9 +101,13 @@ public class JacksonTest {
 
         List<VslVoy> list = new ArrayList<>();
         List<VslVoyAttribute> attributeList = parseUniversal();
+        VslVoyAttribute specialAttribute = parseSpecial();
+        Set<Integer> ignoredColumn = new HashSet<>();
         boolean contentFlag = false;
         for (int i = sheet.getFirstRowNum(); i < sheet.getLastRowNum(); i++) {
             VslVoy vslVoy = new VslVoy();
+            List<PortOfCall> portOfCalls = new ArrayList<>();
+            vslVoy.setPortOfCalls(portOfCalls);
             Row row = sheet.getRow(i);
 
             if (row != null) {
@@ -125,19 +130,41 @@ public class JacksonTest {
                 if (contentFlag) {
                     // 内容解析
                     if (isTitle(cell)) {
-                        i++;
+                        parseTitle(ignoredColumn, row);
                         continue;
                     }
 
+                    boolean specialBeginFlag = false;
+                    boolean specialEndFlag = false;
+                    int portOfCallNo = 0;
                     for (int k = 0; k < attributeList.size(); k++) {
+
+                        // 判断此列是否需要忽略
+                        if (ignoredColumn.contains(j)) {
+                            j++;
+                        }
+
                         Cell temp = row.getCell(j++);
-                        if (temp == null || temp.getCellTypeEnum() == CellType.BLANK) {
+                        if (temp == null || temp.getCellTypeEnum() == CellType.BLANK || temp.getCellTypeEnum() == CellType.ERROR) {
                             continue;
                         }
-                        VslVoyAttribute attribute = attributeList.get(k);
                         String cellValue = getCellConvertValue(temp);
-                        dynamicSet(vslVoy, attribute.getName(), cellValue);
-                        j = j + attribute.getLength() - 1;
+                        VslVoyAttribute universalAttribute = attributeList.get(k);
+                        // 判断是否进入特殊属性范围,则需进行特殊属性的处理，处理完成之后，不影响通用属性的处理顺序
+                        if (universalAttribute.getName().equals(specialAttribute.getBegin())) {
+                            specialBeginFlag = true;
+                        }
+
+                        dynamicSet(vslVoy, universalAttribute.getName(), cellValue);
+                        j = j + universalAttribute.getLength() - 1;
+
+                        if (specialBeginFlag) {
+                            portOfCallNo++;
+                            dynamicListAdd(vslVoy, cellValue, portOfCallNo);
+                            k--;
+                            j++;
+                        }
+
                     }
                     if (vslVoy.getVesselName() != null) {
                         System.out.println(JSONObject.toJSONString(vslVoy));
@@ -171,6 +198,12 @@ public class JacksonTest {
         }
     }
 
+
+    /**
+     * 表尾判断
+     * @param cell
+     * @return
+     */
     private boolean isTail(Cell cell) {
         // 判断表尾是否需要精确匹配
         try {
@@ -186,6 +219,10 @@ public class JacksonTest {
         }
     }
 
+    /** 标题判断
+     * @param cell
+     * @return
+     */
     private boolean isTitle(Cell cell) {
         try {
             TitleSign titleSign = configBean.getContent().getTitleSign();
@@ -198,6 +235,25 @@ public class JacksonTest {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    /**
+     * 解析忽略的列
+     * @param row
+     * @return
+     */
+    private Set<Integer> parseTitle(Set<Integer> ignoredColumn, Row row) {
+        for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
+            Cell cell = row.getCell(i);
+            String cellValue = getCellConvertValue(cell);
+            String pattern = configBean.getContent().getIgnoreColumn();
+            Pattern p = Pattern.compile(pattern);
+            Matcher matcher = p.matcher(cellValue);
+            if (matcher.find()) {
+                ignoredColumn.add(cell.getColumnIndex());
+            }
+        }
+        return ignoredColumn;
     }
 
     /**
@@ -246,6 +302,18 @@ public class JacksonTest {
     }
 
     /**
+     * 解析特殊属性配置
+     */
+    private VslVoyAttribute parseSpecial() {
+        String special = configBean.getContent().getSpecial();
+        VslVoyAttribute vslVoyAttribute = new VslVoyAttribute();
+        vslVoyAttribute.setName(special.substring(0, special.indexOf("(")));
+        vslVoyAttribute.setBegin(special.substring(special.indexOf("(") + 1, special.indexOf("-")));
+        vslVoyAttribute.setEnd(special.substring(special.indexOf("-") + 1, special.indexOf(")")));
+        return vslVoyAttribute;
+    }
+
+    /**
      * 根据属性名调用set方法
      * @param vslVoy  对象
      * @param propertyName  属性名
@@ -261,15 +329,32 @@ public class JacksonTest {
         }
     }
 
+    private void dynamicListAdd(VslVoy vslVoy, String value, Integer portOfCallNo) {
+        PortOfCall portOfCall = new PortOfCall();
+        portOfCall.setEta(value);
+        portOfCall.setPortOfCallNo(String.valueOf(portOfCallNo));
+        vslVoy.getPortOfCalls().add(portOfCall);
+    }
+
+    /**
+     * 获取转换后的单元格值
+     * @param cell
+     * @return
+     */
     public String getCellConvertValue(Cell cell) {
         String cellValue= "";
-        CellType cellType = cell.getCellTypeEnum();
+        CellType cellType;
+        try {
+            cellType = cell.getCellTypeEnum();
+        } catch (Exception e) {
+            cellType = CellType.STRING;
+        }
         switch(cellType) {
             case STRING :
                 cellValue = cell.getStringCellValue().trim();
                 break;
             case NUMERIC:
-                if (HSSFDateUtil.isCellDateFormatted(cell)) {  //判断日期类型
+                if (HSSFDateUtil.isCellDateFormatted(cell)) {
                     cellValue = DateUtils.format(cell.getDateCellValue(), "yyyy-MM-dd");
                 } else {
                     cellValue = new DecimalFormat("#.######").format(cell.getNumericCellValue());
@@ -281,12 +366,13 @@ public class JacksonTest {
             case FORMULA:
 
                 try {
-                    if (HSSFDateUtil.isCellDateFormatted(cell)) {  //判断日期类型
+                    if (HSSFDateUtil.isCellDateFormatted(cell)) {
                         cellValue = DateUtils.format(cell.getDateCellValue(), "yyyy-MM-dd");
                     } else {
                         cellValue = String.valueOf(cell.getNumericCellValue());
                     }
                 } catch (IllegalStateException e) {
+                    cell.setCellType(CellType.STRING);
                     cellValue = String.valueOf(cell.getRichStringCellValue());
                 }
                 break;
@@ -298,6 +384,11 @@ public class JacksonTest {
 
     }
 
+    /**
+     * 获取所有不隐藏的sheet
+     * @param workbook
+     * @return
+     */
     public Iterator<Sheet> getAllBotHiddenSheet(Workbook workbook) {
         List<Sheet> sheetList = new ArrayList<>();
         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {

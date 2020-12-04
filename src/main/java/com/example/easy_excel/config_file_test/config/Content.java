@@ -17,4 +17,6 @@ public class Content {
 
     private String special;
 
+    private String ignoreColumn;
+
 }

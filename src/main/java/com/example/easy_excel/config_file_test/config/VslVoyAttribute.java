@@ -15,6 +15,11 @@ public class VslVoyAttribute {
 
     private Integer length;
 
-    private String type;
+    /**
+     * 圈定可变属性的范围
+     */
+    private String begin;
+
+    private String end;
 
 }

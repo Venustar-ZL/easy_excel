@@ -2,15 +2,11 @@ package com.example.easy_excel.bean;
 
 import lombok.Data;
 
-import java.util.Date;
-
 /**
  * @author chenzx
  */
 @Data
 public class PortOfCall {
-
-    private Long id;
 
     /**
      * 挂靠港序号
@@ -30,5 +26,5 @@ public class PortOfCall {
     /**
      * 预计抵港日
      */
-    private Date eta;
+    private String eta;
 }

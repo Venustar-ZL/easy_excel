@@ -245,6 +245,9 @@ public class JacksonTest {
     private Set<Integer> parseTitle(Set<Integer> ignoredColumn, Row row) {
         for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
             Cell cell = row.getCell(i);
+            if (cell == null) {
+                continue;
+            }
             String cellValue = getCellConvertValue(cell);
             String pattern = configBean.getContent().getIgnoreColumn();
             Pattern p = Pattern.compile(pattern);

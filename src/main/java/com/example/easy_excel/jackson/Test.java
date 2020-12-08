@@ -32,22 +32,22 @@ import java.util.regex.Pattern;
  */
 @Component
 @Slf4j
-public class JacksonTest {
+public class Test {
 
     private ConfigBean configBean;
 
     private String type = "";
 
     public static void main(String[] args) {
-        JacksonTest jacksonTest = new JacksonTest();
-        File file = new File("C:\\Users\\hujingyi\\Desktop\\OOCL.xls");
+        Test jacksonTest = new Test();
+        File file = new File("C:\\Users\\hujingyi\\Desktop\\2月船期.xlsx");
         jacksonTest.read(file);
     }
 
     public void read(File file)  {
         try {
             ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-            String path = this.getClass().getResource("/application-OOCL.yml").getFile();
+            String path = this.getClass().getResource("/application-MJ.yml").getFile();
             configBean = mapper.readValue(new File(path), ConfigBean.class);
             importExcel(file);
         } catch (Exception e) {
@@ -79,9 +79,11 @@ public class JacksonTest {
             while (sheets.hasNext()) {
                 List<VslVoy> list = new ArrayList<>();
                 Sheet sheet = sheets.next();
-//                if ("PCN1".equals(sheet.getSheetName())) {
-//                    list = getCellValue(sheet);
-//                }
+
+                if (!sheet.getSheetName().contains("美加")) {
+                    continue;
+                }
+
                 count++;
                 log.info(sheet.getSheetName() + "---" +count);
                 list = getCellValue(sheet);
@@ -102,6 +104,9 @@ public class JacksonTest {
         List<VslVoyAttribute> attributeList = parseUniversal();
         VslVoyAttribute specialAttribute = parseSpecial();
         Set<Integer> ignoredColumn = new HashSet<>();
+        List<Integer> portOfCallRange = new ArrayList<>();
+        List<PortOfCall> portOfCallList = new ArrayList<>();
+        initRange(portOfCallRange);
         boolean contentFlag = false;
         for (int i = sheet.getFirstRowNum(); i < sheet.getLastRowNum(); i++) {
             VslVoy vslVoy = new VslVoy();
@@ -112,29 +117,30 @@ public class JacksonTest {
             if (row != null) {
                 int j = row.getFirstCellNum();
                 Cell cell = row.getCell(j);
-                if (isHead(cell)) {
+                if (isHead(sheet, cell)) {
                     log.info("=====> 表头 <=====");
                     log.info(cell.getStringCellValue());
                     contentFlag = true;
                     continue;
                 }
 
-                if (isTail(cell)) {
+                if (isTail(sheet, cell)) {
                     log.info("=====> 表尾 <=====");
                     log.info(cell.getStringCellValue());
                     contentFlag = false;
+                    initRange(portOfCallRange);
 
                 }
 
                 if (contentFlag) {
                     // 内容解析
-                    if (isTitle(cell)) {
-                        parseTitle(ignoredColumn, row);
+                    if (isTitle(sheet, cell)) {
+                        getIgnoredColumn(ignoredColumn, row);
+                        parseTitle(portOfCallRange, specialAttribute, row);
                         continue;
                     }
 
                     boolean specialBeginFlag = false;
-                    boolean specialEndFlag = false;
                     int portOfCallNo = 0;
                     for (int k = 0; k < attributeList.size(); k++) {
 
@@ -149,6 +155,7 @@ public class JacksonTest {
                         }
                         String cellValue = getCellConvertValue(temp);
                         VslVoyAttribute universalAttribute = attributeList.get(k);
+
                         // 判断是否进入特殊属性范围,则需进行特殊属性的处理，处理完成之后，不影响通用属性的处理顺序
                         if (universalAttribute.getName().equals(specialAttribute.getBegin())) {
                             specialBeginFlag = true;
@@ -157,11 +164,21 @@ public class JacksonTest {
                         dynamicSet(vslVoy, universalAttribute.getName(), cellValue);
                         j = j + universalAttribute.getLength() - 1;
 
-                        if (specialBeginFlag) {
-                            portOfCallNo++;
-                            dynamicListAdd(vslVoy, cellValue, portOfCallNo);
-                            k--;
-                            j++;
+
+                        if ("null".equals(specialAttribute.getEnd())) {
+                            if (specialBeginFlag) {
+                                portOfCallNo++;
+                                dynamicListAdd(vslVoy, cellValue, portOfCallNo);
+                                k--;
+                                j++;
+                            }
+                        }
+                        else {
+                            if (j >= portOfCallRange.get(0) + 1 && j <= portOfCallRange.get(1) + 1) {
+                                portOfCallNo++;
+                                dynamicListAdd(vslVoy, cellValue, portOfCallNo);
+                                k--;
+                            }
                         }
 
                     }
@@ -182,16 +199,20 @@ public class JacksonTest {
      * @param cell
      * @return
      */
-    private boolean isHead(Cell cell) {
+    private boolean isHead(Sheet sheet, Cell cell) {
+        Cell nextCell = getHeadNextRangeCell(sheet, cell);
         // 判断表头是否需要精确匹配
         try {
             Head head = configBean.getHead();
             boolean headAccurate = head.getAccurate();
             String headColor = head.getColor();
             String headPattern = head.getPattern();
+            String headStyle = head.getStyle();
             boolean colorMatchResult = colorMatch(CellColorUtil.getColorByCell(cell, type), headColor);
             boolean patternMatchResult = patternMatch(cell.getStringCellValue(), headPattern);
-            return headAccurate ? colorMatchResult && patternMatchResult : colorMatchResult || patternMatchResult;
+            boolean styleMatchResult = styleMatch(cell, nextCell, headStyle);
+            return headAccurate ? colorMatchResult && patternMatchResult && styleMatchResult
+                                : colorMatchResult || patternMatchResult || styleMatchResult;
         } catch (Exception ignored) {
             return false;
         }
@@ -203,16 +224,20 @@ public class JacksonTest {
      * @param cell
      * @return
      */
-    private boolean isTail(Cell cell) {
+    private boolean isTail(Sheet sheet, Cell cell) {
+        Cell nextCell = getTailNextRangeCell(sheet, cell);
         // 判断表尾是否需要精确匹配
         try {
             Tail tail = configBean.getTail();
             boolean tailAccurate = tail.getAccurate();
             String tailColor = tail.getColor();
             String tailPattern = tail.getPattern();
+            String tailStyle = tail.getStyle();
             boolean colorMatchResult = colorMatch(CellColorUtil.getColorByCell(cell, type), tailColor);
             boolean patternMatchResult = patternMatch(cell.getStringCellValue(), tailPattern);
-            return tailAccurate ? colorMatchResult && patternMatchResult : colorMatchResult || patternMatchResult;
+            boolean styleMatchResult = styleMatch(cell, nextCell, tailStyle);
+            return tailAccurate ? colorMatchResult && patternMatchResult && styleMatchResult
+                                : colorMatchResult || patternMatchResult || styleMatchResult;
         } catch (Exception ignored) {
             return false;
         }
@@ -222,26 +247,64 @@ public class JacksonTest {
      * @param cell
      * @return
      */
-    private boolean isTitle(Cell cell) {
+    private boolean isTitle(Sheet sheet, Cell cell) {
+        Cell nextCell = getTailNextRangeCell(sheet, cell);
         try {
             TitleSign titleSign = configBean.getContent().getTitleSign();
             String titleColor = titleSign.getColor();
             String titlePattern = titleSign.getPattern();
             String cellColor = CellColorUtil.getColorByCell(cell, type);
+            String style = titleSign.getStyle();
             boolean colorMatch = colorMatch(cellColor, titleColor);
             boolean patternMatch = patternMatch(cell.getStringCellValue(), titlePattern);
-            return colorMatch || patternMatch;
+            boolean styleMatch = styleMatch(cell, nextCell, style);
+            return colorMatch || patternMatch || styleMatch;
         } catch (Exception ignored) {
             return false;
         }
     }
 
     /**
+     * 获取表头当前单元格下一行对应的单元格
+     * @param sheet
+     * @param cell
+     * @return
+     */
+    private Cell getHeadNextRangeCell(Sheet sheet, Cell cell) {
+        try {
+            Integer range = configBean.getHead().getRange();
+            Row nextRow = sheet.getRow(cell.getRowIndex() + range);
+            Cell nextCell = nextRow.getCell(cell.getColumnIndex());
+            return nextCell;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取表尾当前单元格下一行对应的单元格
+     * @param sheet
+     * @param cell
+     * @return
+     */
+    private Cell getTailNextRangeCell(Sheet sheet, Cell cell) {
+        try {
+            Integer range = configBean.getTail().getRange();
+            Row nextRow = sheet.getRow(cell.getRowIndex() - range);
+            Cell nextCell = nextRow.getCell(cell.getColumnIndex());
+            return nextCell;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+
+    /**
      * 解析忽略的列
      * @param row
      * @return
      */
-    private Set<Integer> parseTitle(Set<Integer> ignoredColumn, Row row) {
+    private Set<Integer> getIgnoredColumn(Set<Integer> ignoredColumn, Row row) {
         for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
             Cell cell = row.getCell(i);
             if (cell == null) {
@@ -256,6 +319,38 @@ public class JacksonTest {
             }
         }
         return ignoredColumn;
+    }
+
+    /**
+     * 解析标题
+     * @param portOfCallRange
+     * @param specifiedAttribute
+     */
+    private void parseTitle(List<Integer> portOfCallRange, VslVoyAttribute specifiedAttribute, Row row) {
+        int begin = portOfCallRange.get(0);
+        int end = portOfCallRange.get(1);
+        for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
+            Cell cell = row.getCell(i);
+            if (cell == null) {
+                continue;
+            }
+            if (getCellConvertValue(cell).contains(specifiedAttribute.getBegin())) {
+                begin = i + 1;
+            }
+            else if (getCellConvertValue(cell).contains(specifiedAttribute.getEnd())) {
+                end = i - 1;
+            }
+        }
+        portOfCallRange.set(0, begin);
+        portOfCallRange.set(1, end);
+    }
+
+    /**
+     * 获取标题中的挂靠港名称
+     * @param portOfCallRange
+     */
+    private void getPostOfCallNameInTitle(List<Integer> portOfCallRange) {
+
     }
 
     /**
@@ -286,6 +381,23 @@ public class JacksonTest {
         Pattern p = Pattern.compile(pattern);
         Matcher matcher = p.matcher(cellValue);
         return matcher.find();
+    }
+
+    /**
+     * 进行单元格的样式匹配
+     * @param cell
+     * @param style
+     * @return
+     */
+    private Boolean styleMatch(Cell cell, Cell nextCell, String style) {
+        if (StringUtils.isBlank(style)) {
+            return false;
+        }
+        String[] styles = style.split(",");
+        CellStyle cellStyle = cell.getCellStyle();
+        CellStyle nextCellStyle = nextCell.getCellStyle();
+        return cellStyle.getBorderBottomEnum().name().equals(styles[0])
+                && nextCellStyle.getBorderBottomEnum().name().equals(styles[1]);
     }
 
     /**
@@ -322,6 +434,9 @@ public class JacksonTest {
      * @param value  要插入的属性值
      */
     private void dynamicSet(VslVoy vslVoy, String propertyName, Object value){
+        if ("null".equals(propertyName)) {
+            return;
+        }
         try {
             Field field  = vslVoy.getClass().getDeclaredField(propertyName);
             field.setAccessible(true);
@@ -399,6 +514,17 @@ public class JacksonTest {
             }
         }
         return sheetList.iterator();
+    }
+
+    private void initRange(List<Integer> range) {
+        if (range.size() == 0) {
+            range.add(0);
+            range.add(0);
+        }
+        else {
+            range.set(0, 0);
+            range.set(1, 0);
+        }
     }
 
 

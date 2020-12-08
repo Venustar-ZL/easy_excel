@@ -15,4 +15,6 @@ public class TitleSign {
 
     private String pattern;
 
+    private String style;
+
 }

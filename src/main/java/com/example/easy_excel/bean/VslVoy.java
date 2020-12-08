@@ -138,6 +138,11 @@ public class VslVoy {
     private String lineCode;
 
     /**
+     * 	OOG提单截止固定时间
+     */
+    private String oogSiCutOffTime;
+
+    /**
      * 挂靠港列表
      */
     private List<PortOfCall> portOfCalls;

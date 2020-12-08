@@ -4,10 +4,10 @@ head:
   accurate: false
   # 表头颜色
   color:
-  # 表头格式
-  pattern: .*(?i)(every).*
+  # 表头文字格式
+  pattern:
   # 表头样式
-  style:
+  style: NONE,THIN
   # 是否需要解析
   parsing: false
   # 范围
@@ -16,15 +16,15 @@ head:
 
 content:
   titleSign:
-    color: 255,204,153
+    color:
     pattern:
-    style:
+    style: THIN,NONE
   # 标题中需要解析的列
-  ignoreColumn: .*(?i)(only).*|.*(?i)(for mexico).*
+  ignoreColumn: .*(?i)(IRIS).*
   # 通用属性
-  universal: vesselName(2),carrierVoyageNo(1),cyOpeningTime(1),cyCutOffTime(1),siCutOffTime(1),vgmCutOffTime(1),etd(1)
+  universal: vesselName(1),carrierVoyageNo(1),vesselCode(1),shippingAgentCode(1),terminalVoyageNo(1),etd(1),vgmCutOffTime(1),portTerminalOfBerthingName(1),oogSiCutOffTime(1)
   # 可变属性
-  special: portOfCalls(etd-null)
+  special: portOfCalls(开航-VGM)
 
 tail:
   # 是否需要精确匹配
@@ -32,9 +32,9 @@ tail:
   # 表尾颜色
   color:
   # 表尾格式
-  pattern: .*DR CUT OFF.*
-  # 表头样式
-  style:
+  pattern:
+  # 表尾样式
+  style: NONE,THIN
   # 是否需要解析
   parsing: false
   # 范围

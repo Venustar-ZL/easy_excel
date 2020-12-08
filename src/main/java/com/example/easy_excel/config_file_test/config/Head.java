@@ -17,6 +17,8 @@ public class Head {
 
     private String pattern;
 
+    private String style;
+
     private Boolean parsing;
 
     private Integer range;

@@ -33,14 +33,14 @@ import java.util.regex.Pattern;
  */
 @Component
 @Slf4j
-public class Test {
+public class LFTest {
 
     private ConfigBean configBean;
 
     private String type = "";
 
     public static void main(String[] args) {
-        Test jacksonTest = new Test();
+        LFTest jacksonTest = new LFTest();
         File file = new File("C:\\Users\\hujingyi\\Desktop\\2月船期.xlsx");
         jacksonTest.read(file);
     }
@@ -48,7 +48,7 @@ public class Test {
     public void read(File file)  {
         try {
             ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-            String path = this.getClass().getResource("/application-MJ.yml").getFile();
+            String path = this.getClass().getResource("/application-LF.yml").getFile();
             configBean = mapper.readValue(new File(path), ConfigBean.class);
             importExcel(file);
         } catch (Exception e) {
@@ -81,7 +81,7 @@ public class Test {
                 List<VslVoy> list = new ArrayList<>();
                 Sheet sheet = sheets.next();
 
-                if (!sheet.getSheetName().contains("美加")) {
+                if (!sheet.getSheetName().contains("拉菲")) {
                     continue;
                 }
 
@@ -330,11 +330,13 @@ public class Test {
                 continue;
             }
             String cellValue = getCellConvertValue(cell);
-            String pattern = configBean.getContent().getIgnoreColumn();
-            Pattern p = Pattern.compile(pattern);
-            Matcher matcher = p.matcher(cellValue);
-            if (matcher.find()) {
-                ignoredColumn.add(cell.getColumnIndex());
+            String[] patterns = configBean.getContent().getIgnoreColumn().split(",");
+            for (String pattern : patterns) {
+                Pattern p = Pattern.compile(pattern);
+                Matcher matcher = p.matcher(cellValue);
+                if (matcher.find()) {
+                    ignoredColumn.add(cell.getColumnIndex());
+                }
             }
         }
         return ignoredColumn;
@@ -366,10 +368,16 @@ public class Test {
 
     /**
      * 获取标题中的挂靠港名称
+     * @param portOfCallList
      * @param portOfCallRange
+     * @param row
      */
-    private void getPostOfCallNameInTitle(List<Integer> portOfCallRange) {
-
+    private void getPostOfCallNameInTitle(List<PortOfCall> portOfCallList, List<Integer> portOfCallRange, Row row) {
+        for (int i = portOfCallRange.get(0); i <= portOfCallRange.get(1); i++) {
+            Cell cell = row.getCell(i);
+            String cellValue = getCellConvertValue(cell);
+            log.info(cellValue);
+        }
     }
 
     /**

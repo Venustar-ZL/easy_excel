@@ -1,0 +1,41 @@
+# 自定义配置文件
+head:
+  # 是否需要精确匹配
+  accurate: false
+  # 表头颜色
+  color: 255,255,0
+  # 表头文字格式
+  pattern:
+  # 表头样式
+  style: NONE,THIN
+  # 是否需要解析
+  parsing: false
+  # 范围
+  range: 1
+
+
+content:
+  titleSign:
+    color:
+    pattern:
+    style: THIN,NONE
+  # 标题中需要解析的列
+  ignoreColumn: .*(?i)(IRIS).*,.*(?i)(周).*
+  # 通用属性
+  universal: vesselName(1),carrierVoyageNo(1),vesselCode(1),terminalVoyageNo(1),etd(1),portTerminalOfBerthingName(1),vesselOperatorCode(1),vgmCutOffTime(2)
+  # 可变属性
+  special: portOfCalls(开航-挂靠码头)
+
+tail:
+  # 是否需要精确匹配
+  accurate: false
+  # 表尾颜色
+  color:
+  # 表尾格式
+  pattern:
+  # 表尾样式
+  style: NONE,THIN
+  # 是否需要解析
+  parsing: false
+  # 范围
+  range: 1

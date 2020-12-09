@@ -19,6 +19,8 @@ public class Tail {
 
     private String style;
 
+    private String fontColor;
+
     private Boolean parsing;
 
     private Integer range;

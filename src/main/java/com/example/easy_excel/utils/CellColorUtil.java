@@ -60,4 +60,13 @@ public class CellColorUtil {
         return sb.toString();
 
     }
+
+    /**
+     * 获取字体颜色
+     * @param cell
+     * @return
+     */
+    public static String getColorByFont(Cell cell) {
+        return String.valueOf(cell.getCellStyle().getFontIndex());
+    }
 }

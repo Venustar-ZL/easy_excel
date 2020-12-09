@@ -132,7 +132,6 @@ public class LFTest {
                     contentFlag = false;
                     initRange(portOfCallRange);
                     mergedCell.clear();
-
                 }
 
                 if (contentFlag) {
@@ -264,11 +263,13 @@ public class LFTest {
             String tailColor = tail.getColor();
             String tailPattern = tail.getPattern();
             String tailStyle = tail.getStyle();
+            String fontColor = tail.getFontColor();
             boolean colorMatchResult = colorMatch(CellColorUtil.getColorByCell(cell, type), tailColor);
             boolean patternMatchResult = patternMatch(cell.getStringCellValue(), tailPattern);
             boolean styleMatchResult = styleMatch(cell, nextCell, tailStyle);
-            return tailAccurate ? colorMatchResult && patternMatchResult && styleMatchResult
-                                : colorMatchResult || patternMatchResult || styleMatchResult;
+            boolean fontColorMatchResult = fontColorMatch(CellColorUtil.getColorByFont(cell), fontColor);
+            return tailAccurate ? colorMatchResult && patternMatchResult && styleMatchResult && fontColorMatchResult
+                                : colorMatchResult || patternMatchResult || styleMatchResult || fontColorMatchResult;
         } catch (Exception ignored) {
             return false;
         }
@@ -406,6 +407,19 @@ public class LFTest {
             return false;
         }
         return StringUtils.equals(cellColor, color);
+    }
+
+    /**
+     * 字体颜色匹配
+     * @param fontColor
+     * @param color
+     * @return
+     */
+    private Boolean fontColorMatch(String fontColor, String color) {
+        if (StringUtils.isBlank(color)) {
+            return false;
+        }
+        return StringUtils.equals(fontColor, color);
     }
 
     /**

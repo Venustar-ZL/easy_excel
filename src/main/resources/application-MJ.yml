@@ -8,6 +8,8 @@ head:
   pattern:
   # 表头样式
   style: NONE,THIN
+  # 表头字体颜色
+  fontColor:
   # 是否需要解析
   parsing: false
   # 范围
@@ -35,7 +37,9 @@ tail:
   pattern:
   # 表尾样式
   style: NONE,THIN
+  # 表尾字体颜色
+  fontColor:
   # 是否需要解析
   parsing: false
-  # 范围
+  #范围
   range: 1

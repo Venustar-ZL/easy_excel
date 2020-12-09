@@ -17,8 +17,8 @@ head:
 content:
   titleSign:
     color:
-    pattern:
-    style: THIN,NONE
+    pattern: .*(?i)(船    名).*
+    style:
   # 标题中需要解析的列
   ignoreColumn: .*(?i)(IRIS).*,.*(?i)(周).*
   # 通用属性

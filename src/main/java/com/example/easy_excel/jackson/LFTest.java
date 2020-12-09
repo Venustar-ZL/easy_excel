@@ -140,7 +140,7 @@ public class LFTest {
                     if (isTitle(sheet, cell)) {
                         getIgnoredColumn(ignoredColumn, row);
                         parseTitle(portOfCallRange, specialAttribute, row);
-//                        getPostOfCallNameInTitle(portOfCallList, portOfCallRange, row);
+                        getPostOfCallNameInTitle(portOfCallList, portOfCallRange, row);
                         continue;
                     }
 
@@ -199,7 +199,7 @@ public class LFTest {
                         if ("null".equals(specialAttribute.getEnd())) {
                             if (specialBeginFlag) {
                                 portOfCallNo++;
-                                dynamicListAdd(vslVoy, cellValue, portOfCallNo);
+                                dynamicListAdd(vslVoy, cellValue, portOfCallNo, portOfCallList);
                                 k--;
                                 j++;
                             }
@@ -207,7 +207,7 @@ public class LFTest {
                         else {
                             if (j >= portOfCallRange.get(0) + 1 && j <= portOfCallRange.get(1) + 1) {
                                 portOfCallNo++;
-                                dynamicListAdd(vslVoy, cellValue, portOfCallNo);
+                                dynamicListAdd(vslVoy, cellValue, portOfCallNo, portOfCallList);
                                 k--;
                             }
                         }
@@ -386,9 +386,11 @@ public class LFTest {
      */
     private void getPostOfCallNameInTitle(List<PortOfCall> portOfCallList, List<Integer> portOfCallRange, Row row) {
         for (int i = portOfCallRange.get(0); i <= portOfCallRange.get(1); i++) {
+            PortOfCall portOfCall = new PortOfCall();
             Cell cell = row.getCell(i);
             String cellValue = getCellConvertValue(cell);
-            log.info(cellValue);
+            portOfCall.setPortOfCallName(cellValue);
+            portOfCallList.add(portOfCall);
         }
     }
 
@@ -485,10 +487,11 @@ public class LFTest {
         }
     }
 
-    private void dynamicListAdd(VslVoy vslVoy, String value, Integer portOfCallNo) {
+    private void dynamicListAdd(VslVoy vslVoy, String value, Integer portOfCallNo, List<PortOfCall> portOfCallList) {
         PortOfCall portOfCall = new PortOfCall();
         portOfCall.setEta(value);
         portOfCall.setPortOfCallNo(String.valueOf(portOfCallNo));
+        portOfCall.setPortOfCallName(portOfCallList.get(portOfCallNo - 1).getPortOfCallName());
         vslVoy.getPortOfCalls().add(portOfCall);
     }
 

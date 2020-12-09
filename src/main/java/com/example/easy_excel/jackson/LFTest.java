@@ -181,6 +181,18 @@ public class LFTest {
                             specialBeginFlag = true;
                         }
 
+                        if (universalAttribute.getLength() > 1) {
+                            for (int start = j; start < j + universalAttribute.getLength(); start++) {
+                                Cell c = row.getCell(start);
+                                if (c == null) {
+                                    continue;
+                                }
+                                String value = getCellConvertValue(c);
+                                cellValue = cellValue + " " + value;
+                            }
+                            j++;
+                        }
+
                         dynamicSet(vslVoy, universalAttribute.getName(), cellValue);
                         j = j + universalAttribute.getLength() - 1;
 
